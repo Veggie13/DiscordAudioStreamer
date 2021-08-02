@@ -1,7 +1,7 @@
-﻿using CSCore.SoundIn;
-using Discord;
+﻿using Discord;
 using Discord.Audio;
 using Discord.WebSocket;
+using NAudio.Wave;
 using System;
 using System.Configuration;
 using System.Threading.Tasks;
@@ -61,16 +61,19 @@ namespace DiscordAudioStreamer
             using (var capture = new WasapiLoopbackCapture())
             {
                 //initialize the selected device for recording
-                capture.Initialize();
+                var captureProvider = new WaveInProvider(capture);
                 int bytesPerBlockIn = capture.WaveFormat.BlockAlign;
-                int bytesPerSampleIn = capture.WaveFormat.BytesPerSample;
+                int bytesPerSampleIn = capture.WaveFormat.BitsPerSample / 8;
                 int channelsIn = capture.WaveFormat.Channels;
                 int rateIn = capture.WaveFormat.SampleRate;
 
                 using (var connection = await getConnection())
                 using (var voiceStream = connection.CreatePCMStream(Discord.Audio.AudioApplication.Music))
                 {
-                    var transcodeBuf = new byte[8 * 1024];
+                    var voiceFormat = WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm, capture.WaveFormat.SampleRate, 2, capture.WaveFormat.SampleRate * 2 * 2, 4, 16);
+                    var resampler = new MediaFoundationResampler(captureProvider, voiceFormat);
+
+                    var transcodeBuf = new byte[1024 * 1024];
                     int channelsOut = 2;
                     int bytesPerSampleOut = 2;
                     int bytesPerBlockOut = bytesPerSampleOut * channelsOut;
@@ -84,16 +87,9 @@ namespace DiscordAudioStreamer
                     //setup an eventhandler to receive the recorded data
                     capture.DataAvailable += (s, e) =>
                     {
-                        int transcodeBytes = Math.Min(transcodeBuf.Length, (e.ByteCount / bytesPerUsedBlockIn) * bytesPerBlockOut);
-                        for (int i = 0, j = e.Offset; i < transcodeBytes; i += bytesPerBlockOut, j += bytesPerUsedBlockIn)
-                        {
-                            for (int k = 0; k < channelsOut; k++)
-                            {
-                                var sample = BitConverter.ToSingle(e.Data, j + k * bytesPerSampleIn);
-                                short transcode = (short)(sample * Int16.MaxValue);
-                                Array.Copy(BitConverter.GetBytes(transcode), 0, transcodeBuf, i + k * bytesPerSampleOut, bytesPerSampleOut);
-                            }
-                        }
+                        int blockCount = e.BytesRecorded / capture.WaveFormat.BlockAlign;
+                        int transcodeBytes = blockCount * resampler.WaveFormat.BlockAlign;
+                        resampler.Read(transcodeBuf, 0, transcodeBytes);
 
                         //save the recorded audio
                         try
@@ -108,13 +104,13 @@ namespace DiscordAudioStreamer
 
                     //start recording
                     Console.WriteLine("Starting capture.");
-                    capture.Start();
+                    capture.StartRecording();
                     Console.WriteLine("Capture started.");
 
                     while (_capturing) ;
 
                     Console.WriteLine("Stopping capture.");
-                    capture.Stop();
+                    capture.StopRecording();
                     Console.WriteLine("Capture stopped.");
                 }
             }

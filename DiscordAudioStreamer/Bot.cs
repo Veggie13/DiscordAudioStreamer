@@ -1,9 +1,11 @@
 ﻿using Discord;
 using Discord.Audio;
 using Discord.WebSocket;
+using NAudio.Utils;
 using NAudio.Wave;
 using System;
 using System.Configuration;
+using System.IO;
 using System.Threading.Tasks;
 using System.Linq;
 
@@ -58,67 +60,62 @@ namespace DiscordAudioStreamer
             _capturing = true;
             _streaming = true;
 
-            using (var capture = new WasapiLoopbackCapture())
-            {
-                //initialize the selected device for recording
-                var captureProvider = new WaveInProvider(capture);
-                int bytesPerBlockIn = capture.WaveFormat.BlockAlign;
-                int bytesPerSampleIn = capture.WaveFormat.BitsPerSample / 8;
-                int channelsIn = capture.WaveFormat.Channels;
-                int rateIn = capture.WaveFormat.SampleRate;
+            const int blockRateOut = 48000;
+            const int channelsOut = 2;
+            const int bytesPerSampleOut = 2;
+            const int blockSizeOut = channelsOut * bytesPerSampleOut;
+            const int bitsPerSampleOut = bytesPerSampleOut * 8;
+            const int sampleRateOut = blockRateOut * channelsOut;
+            const int byteRateOut = sampleRateOut * bytesPerSampleOut;
 
+            try
+            {
+                using (var capture = new WasapiLoopbackCapture())
                 using (var connection = await getConnection())
                 using (var voiceStream = connection.CreatePCMStream(Discord.Audio.AudioApplication.Music))
                 {
-                    var voiceFormat = WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm, capture.WaveFormat.SampleRate, 2, capture.WaveFormat.SampleRate * 2 * 2, 4, 16);
-                    var resampler = new MediaFoundationResampler(captureProvider, voiceFormat);
+                    //initialize the selected device for recording
+                    var captureProvider = new WaveInProvider(capture);
 
-                    var transcodeBuf = new byte[1024 * 1024];
-                    int channelsOut = 2;
-                    int bytesPerSampleOut = 2;
-                    int bytesPerBlockOut = bytesPerSampleOut * channelsOut;
-                    int rateOut = rateIn/*voiceChannel.Bitrate / 8 / bytesPerBlockOut*/;
-                    int rateRatio = rateIn / rateOut;
-                    int bytesPerUsedBlockIn = bytesPerBlockIn * rateRatio;
-                    Console.WriteLine($"In:  BLOCK[{bytesPerBlockIn}] SAMPLE[{bytesPerSampleIn}] CHANNELS[{channelsIn}] RATE[{rateIn}]");
-                    Console.WriteLine($"Out: BLOCK[{bytesPerBlockOut}] SAMPLE[{bytesPerSampleOut}] CHANNELS[{channelsOut}] RATE[{rateOut}]");
-                    Console.WriteLine($"LE: {BitConverter.IsLittleEndian}");
-
-                    //setup an eventhandler to receive the recorded data
-                    capture.DataAvailable += (s, e) =>
+                    var voiceFormat = WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm, blockRateOut, channelsOut, byteRateOut, blockSizeOut, bitsPerSampleOut);
+                    using (var resampler = new MediaFoundationResampler(captureProvider, voiceFormat))
+                    using (var writer = new BinaryWriter(new IgnoreDisposeStream(voiceStream)))
                     {
-                        int blockCount = e.BytesRecorded / capture.WaveFormat.BlockAlign;
-                        int transcodeBytes = blockCount * resampler.WaveFormat.BlockAlign;
-                        resampler.Read(transcodeBuf, 0, transcodeBytes);
+                        var transcodeBuf = new byte[256];
 
-                        //save the recorded audio
-                        try
+                        //start recording
+                        Console.WriteLine("Starting capture.");
+                        capture.StartRecording();
+                        Console.WriteLine("Capture started.");
+
+                        while (_capturing)
                         {
-                            voiceStream.WriteAsync(transcodeBuf, 0, transcodeBytes).Wait();
-                            voiceStream.FlushAsync();
+                            try
+                            {
+                                int transcodeBytes = resampler.Read(transcodeBuf, 0, transcodeBuf.Length);
+                                if (transcodeBytes > 0)
+                                {
+                                    writer.Write(transcodeBuf, 0, transcodeBytes);
+                                }
+                            }
+                            catch
+                            { }
                         }
-                        catch
-                        {
-                        }
-                    };
 
-                    //start recording
-                    Console.WriteLine("Starting capture.");
-                    capture.StartRecording();
-                    Console.WriteLine("Capture started.");
-
-                    while (_capturing) ;
-
-                    Console.WriteLine("Stopping capture.");
-                    capture.StopRecording();
-                    Console.WriteLine("Capture stopped.");
+                        Console.WriteLine("Stopping capture.");
+                        capture.StopRecording();
+                        Console.WriteLine("Capture stopped.");
+                    }
                 }
             }
-
-            Console.WriteLine($"Disconnecting from channel {_currentChannel.Id}");
-            await _currentChannel.DisconnectAsync();
-            Console.WriteLine($"Disconnected from channel {_currentChannel.Id}");
-            _streaming = false;
+            finally
+            {
+                Console.WriteLine($"Disconnecting from channel {_currentChannel.Id}");
+                await _currentChannel.DisconnectAsync();
+                Console.WriteLine($"Disconnected from channel {_currentChannel.Id}");
+                _streaming = false;
+                _capturing = false;
+            }
         }
 
         private async Task<IAudioClient> getConnection()

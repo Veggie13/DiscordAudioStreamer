@@ -1,11 +1,9 @@
 ﻿using Discord;
 using Discord.Audio;
 using Discord.WebSocket;
-using NAudio.Utils;
 using NAudio.Wave;
 using System;
 using System.Configuration;
-using System.IO;
 using System.Threading.Tasks;
 using System.Linq;
 
@@ -60,52 +58,28 @@ namespace DiscordAudioStreamer
             _capturing = true;
             _streaming = true;
 
-            const int blockRateOut = 48000;
-            const int channelsOut = 2;
-            const int bytesPerSampleOut = 2;
-            const int blockSizeOut = channelsOut * bytesPerSampleOut;
-            const int bitsPerSampleOut = bytesPerSampleOut * 8;
-            const int sampleRateOut = blockRateOut * channelsOut;
-            const int byteRateOut = sampleRateOut * bytesPerSampleOut;
-
             try
             {
                 using (var capture = new WasapiLoopbackCapture())
-                using (var connection = await getConnection())
-                using (var voiceStream = connection.CreatePCMStream(Discord.Audio.AudioApplication.Music))
                 {
-                    //initialize the selected device for recording
-                    var captureProvider = new WaveInProvider(capture);
+                    //start recording
+                    Console.WriteLine("Starting capture.");
+                    capture.StartRecording();
+                    Console.WriteLine("Capture started.");
 
-                    var voiceFormat = WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm, blockRateOut, channelsOut, byteRateOut, blockSizeOut, bitsPerSampleOut);
-                    using (var resampler = new MediaFoundationResampler(captureProvider, voiceFormat))
-                    using (var writer = new BinaryWriter(new IgnoreDisposeStream(voiceStream)))
+                    using (var connection = await getConnection())
+                    using (var waveOut = new DiscordWaveOut(connection))
                     {
-                        var transcodeBuf = new byte[256];
+                        var captureProvider = new WaveInProvider(capture);
+                        waveOut.Init(captureProvider);
+                        waveOut.Play();
 
-                        //start recording
-                        Console.WriteLine("Starting capture.");
-                        capture.StartRecording();
-                        Console.WriteLine("Capture started.");
-
-                        while (_capturing)
-                        {
-                            try
-                            {
-                                int transcodeBytes = resampler.Read(transcodeBuf, 0, transcodeBuf.Length);
-                                if (transcodeBytes > 0)
-                                {
-                                    writer.Write(transcodeBuf, 0, transcodeBytes);
-                                }
-                            }
-                            catch
-                            { }
-                        }
-
-                        Console.WriteLine("Stopping capture.");
-                        capture.StopRecording();
-                        Console.WriteLine("Capture stopped.");
+                        while (_capturing) ;
                     }
+
+                    Console.WriteLine("Stopping capture.");
+                    capture.StopRecording();
+                    Console.WriteLine("Capture stopped.");
                 }
             }
             finally

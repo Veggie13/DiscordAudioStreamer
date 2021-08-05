@@ -11,14 +11,31 @@ namespace DiscordAudioStreamer
 {
     class Bot
     {
-        bool _running = true;
+        bool _running = false;
         bool _capturing = false;
         bool _streaming = false;
         int _userCount = 0;
         SocketVoiceChannel _currentChannel = null;
+        Task _runTask;
 
-        public async Task Run()
+        public IWaveProvider Input { get; set; }
+
+        public void Run()
         {
+            _runTask = runAsync();
+        }
+
+        public void Stop()
+        {
+            EndStream();
+            _running = false;
+            _runTask = null;
+        }
+
+        private async Task runAsync()
+        {
+            _running = true;
+
             var client = new DiscordSocketClient();
             client.MessageReceived += Client_MessageReceived;
             client.Log += Client_Log;
@@ -60,26 +77,13 @@ namespace DiscordAudioStreamer
 
             try
             {
-                using (var capture = new WasapiLoopbackCapture())
+                using (var connection = await getConnection())
+                using (var waveOut = new DiscordWaveOut(connection))
                 {
-                    //start recording
-                    Console.WriteLine("Starting capture.");
-                    capture.StartRecording();
-                    Console.WriteLine("Capture started.");
+                    waveOut.Init(Input);
+                    waveOut.Play();
 
-                    using (var connection = await getConnection())
-                    using (var waveOut = new DiscordWaveOut(connection))
-                    {
-                        var captureProvider = new WaveInProvider(capture);
-                        waveOut.Init(captureProvider);
-                        waveOut.Play();
-
-                        while (_capturing) ;
-                    }
-
-                    Console.WriteLine("Stopping capture.");
-                    capture.StopRecording();
-                    Console.WriteLine("Capture stopped.");
+                    while (_capturing) ;
                 }
             }
             finally

@@ -1,19 +1,17 @@
-﻿using System.Runtime.InteropServices;
+﻿using System;
+using System.Windows.Forms;
 
 namespace DiscordAudioStreamer
 {
     class Program
     {
+        [STAThread]
         public static void Main(string[] args)
         {
-            AllocConsole();
-
-            var bot = new Bot();
-            bot.Run().ConfigureAwait(false).GetAwaiter().GetResult();
+            Application.SetHighDpiMode(HighDpiMode.SystemAware);
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new BoardForm());
         }
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool AllocConsole();
     }
 }

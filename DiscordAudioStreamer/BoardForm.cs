@@ -34,7 +34,7 @@ namespace DiscordAudioStreamer
             _boardLayout = boardLayout;
             _layoutPanel.Controls.Clear();
 
-            _layoutPanel.ColumnCount = Math.Max(1, _boardLayout.Groups.Count);
+            _layoutPanel.ColumnCount = 1 + Math.Max(1, _boardLayout.Groups.Count);
             _layoutPanel.RowCount = 1 + (_boardLayout.Groups.Any() ? _boardLayout.Groups.Max(g => g.Resources.Count) : 1);
 
             int col = 0;
@@ -93,6 +93,21 @@ namespace DiscordAudioStreamer
                 }
                 col++;
             }
+
+            var reloadButton = new Button()
+            {
+                Text = "RELOAD",
+                AutoSize = true
+            };
+            reloadButton.Click += (_, _) =>
+            {
+                string layoutFile = ConfigurationManager.AppSettings["layoutFile"];
+                string content = File.ReadAllText(layoutFile);
+                var boardLayout = JsonSerializer.Deserialize<BoardLayout>(content);
+                SetBoardLayout(boardLayout);
+            };
+
+            _layoutPanel.Controls.Add(reloadButton, col, 0);
         }
 
         public void SetBoardLayoutRemote(string remote)

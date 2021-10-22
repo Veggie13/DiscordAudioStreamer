@@ -66,7 +66,8 @@ namespace DiscordAudioStreamer
                     Value = 100,
                     SmallChange = 1,
                     LargeChange = 10,
-                    AutoSize = true
+                    AutoSize = true,
+                    MinimumSize = new System.Drawing.Size(300, 0)
                 };
                 slider.ValueChanged += (_, _) => { groupController.Volume = slider.Value; };
                 _layoutPanel.Controls.Add(slider, col, 2);
@@ -80,7 +81,8 @@ namespace DiscordAudioStreamer
                     {
                         Text = resource.Text,
                         AutoSize = true,
-                        AutoSizeMode = AutoSizeMode.GrowOnly
+                        AutoSizeMode = AutoSizeMode.GrowOnly,
+                        Font = new System.Drawing.Font("Arial", 30)
                     };
                     var res = resource;
                     button.Click += (_, _) => res.Trigger();

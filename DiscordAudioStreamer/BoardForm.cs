@@ -51,6 +51,14 @@ namespace DiscordAudioStreamer
                 _mixer.AddMixerInput(groupController.Mixer);
                 _groupControllers[groupController.Group.ID] = groupController;
 
+                var stopButton = new Button()
+                {
+                    Text = "STOP",
+                    AutoSize = true
+                };
+                stopButton.Click += (_, _) => { group.StopEarly(); };
+                _layoutPanel.Controls.Add(stopButton, col, 1);
+
                 var slider = new TrackBar()
                 {
                     Minimum = 0,
@@ -61,10 +69,9 @@ namespace DiscordAudioStreamer
                     AutoSize = true
                 };
                 slider.ValueChanged += (_, _) => { groupController.Volume = slider.Value; };
+                _layoutPanel.Controls.Add(slider, col, 2);
 
-                _layoutPanel.Controls.Add(slider, col, 1);
-
-                int row = 2;
+                int row = 3;
                 foreach (var resource in group.Resources)
                 {
                     _resources[resource.ID] = resource;

@@ -33,6 +33,11 @@ namespace DiscordAudioStreamer
         public event Action Stop = () => { };
         public event Action<bool, BoardResource> Start = (_, _) => { };
 
+        public void StopEarly()
+        {
+            Stop();
+        }
+
         private void resource_Triggered(BoardResource resource)
         {
             if (!CanPlaySimultaneously)

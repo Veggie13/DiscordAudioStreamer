@@ -5,6 +5,7 @@ using Discord.WebSocket;
 using System;
 using System.Configuration;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace DiscordAudioStreamer
 {
@@ -21,7 +22,6 @@ namespace DiscordAudioStreamer
             var client = new DiscordSocketClient();
             client.MessageReceived += Client_MessageReceived;
             client.Log += Client_Log;
-            client.UserVoiceStateUpdated += Client_UserVoiceStateUpdated;
 
             string token = ConfigurationManager.AppSettings.Get("token");
 
@@ -31,33 +31,6 @@ namespace DiscordAudioStreamer
             while (_running)
             {
                 await Task.Delay(5000);
-            }
-        }
-
-        private async Task Client_UserVoiceStateUpdated(SocketUser user, SocketVoiceState state1, SocketVoiceState state2)
-        {
-            if (user.IsBot)
-                return;
-
-            if (_userCount == 0 && state2.VoiceChannel != null)
-            {
-                JoinChannel(state2.VoiceChannel);
-            }
-            else if (_userCount > 0)
-            {
-                if (_currentChannel == state2.VoiceChannel)
-                {
-                    _userCount++;
-                }
-                else if (_currentChannel == state1.VoiceChannel)
-                {
-                    _userCount--;
-                }
-                
-                if (_userCount == 0)
-                {
-                    EndStream();
-                }
             }
         }
 
@@ -177,6 +150,13 @@ namespace DiscordAudioStreamer
             {
                 EndStream();
                 _running = false;
+            }
+            if (msg.Content == "!joinme")
+            {
+                var channel = msg.Author.MutualGuilds
+                    .SelectMany(g => g.VoiceChannels)
+                    .FirstOrDefault(vc => vc.Users.Contains(msg.Author));
+                JoinChannel(channel);
             }
             return Task.CompletedTask;
         }

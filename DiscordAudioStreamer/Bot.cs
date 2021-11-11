@@ -6,6 +6,7 @@ using System;
 using System.Configuration;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace DiscordAudioStreamer
 {
@@ -115,21 +116,39 @@ namespace DiscordAudioStreamer
             return connection;
         }
 
-        private Task Client_MessageReceived(SocketMessage msg)
+        private async Task Client_MessageReceived(SocketMessage msg)
         {
-            if (msg.Content == "!endaudio")
+            var regex = new Regex("^!(.+?)( (.*))?$");
+            var match = regex.Match(msg.Content);
+            if (!match.Success)
             {
-                EndStream();
-                _running = false;
+                return;
             }
-            if (msg.Content == "!joinme")
+
+            switch (match.Groups[1].Value)
             {
-                var channel = msg.Author.MutualGuilds
-                    .SelectMany(g => g.VoiceChannels)
-                    .FirstOrDefault(vc => vc.Users.Contains(msg.Author));
-                JoinChannel(channel);
+                case "endaudio":
+                    {
+                        EndStream();
+                        _running = false;
+                        break;
+                    }
+                case "joinme":
+                    {
+                        var channel = msg.Author.MutualGuilds
+                            .SelectMany(g => g.VoiceChannels)
+                            .FirstOrDefault(vc => vc.Users.Contains(msg.Author));
+                        await JoinChannel(channel);
+                        break;
+                    }
+                case "list":
+                    {
+                        await msg.Channel.SendMessageAsync("TEST");
+                        break;
+                    }
+                default:
+                    break;
             }
-            return Task.CompletedTask;
         }
 
         private Task Client_Log(LogMessage msg)

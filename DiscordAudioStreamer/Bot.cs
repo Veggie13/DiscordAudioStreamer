@@ -119,51 +119,55 @@ namespace DiscordAudioStreamer
             return connection;
         }
 
-        private async Task Client_MessageReceived(SocketMessage msg)
+        private Task Client_MessageReceived(SocketMessage msg)
         {
-            var regex = new Regex("^!(.+?)( (.*))?$");
-            var match = regex.Match(msg.Content);
-            if (!match.Success)
+            _ = Task.Run(async () =>
             {
-                return;
-            }
+                var regex = new Regex("^!(.+?)( (.*))?$");
+                var match = regex.Match(msg.Content);
+                if (!match.Success)
+                {
+                    return;
+                }
 
-            switch (match.Groups[1].Value)
-            {
-                case "endaudio":
-                    {
-                        EndStream();
-                        _running = false;
-                        break;
-                    }
-                case "joinme":
-                    {
-                        var channel = msg.Author.MutualGuilds
-                            .SelectMany(g => g.VoiceChannels)
-                            .FirstOrDefault(vc => vc.Users.Contains(msg.Author));
-                        await JoinChannel(channel);
-                        break;
-                    }
-                case "list":
-                    {
-                        string listing = ListingProvider();
-                        await msg.Channel.SendMessageAsync(listing);
-                        break;
-                    }
-                case "play":
-                    {
-                        var args = match.Groups[3].Value.Split(' ');
-                        if (args.Length >= 2)
+                switch (match.Groups[1].Value)
+                {
+                    case "endaudio":
                         {
-                            int groupIndex = int.Parse(args[0]);
-                            int resIndex = int.Parse(args[1]);
-                            Triggered(groupIndex, resIndex);
+                            EndStream();
+                            _running = false;
+                            break;
                         }
+                    case "joinme":
+                        {
+                            var channel = msg.Author.MutualGuilds
+                                .SelectMany(g => g.VoiceChannels)
+                                .FirstOrDefault(vc => vc.Users.Contains(msg.Author));
+                            await JoinChannel(channel);
+                            break;
+                        }
+                    case "list":
+                        {
+                            string listing = ListingProvider();
+                            await msg.Channel.SendMessageAsync(listing);
+                            break;
+                        }
+                    case "play":
+                        {
+                            var args = match.Groups[3].Value.Split(' ');
+                            if (args.Length >= 2)
+                            {
+                                int groupIndex = int.Parse(args[0]);
+                                int resIndex = int.Parse(args[1]);
+                                Triggered(groupIndex, resIndex);
+                            }
+                            break;
+                        }
+                    default:
                         break;
-                    }
-                default:
-                    break;
-            }
+                }
+            });
+            return Task.CompletedTask;
         }
 
         private Task Client_Log(LogMessage msg)

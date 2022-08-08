@@ -216,14 +216,7 @@ namespace DiscordAudioStreamer
                 _bot = new Bot()
                 {
                     Input = _mixer.ToWaveProvider(),
-                    ListingProvider = this.getListing
-                };
-                _bot.Triggered += (g, r) =>
-                {
-                    if (g < _boardLayout.Groups.Count && r < _boardLayout.Groups[g].Resources.Count)
-                    {
-                        _boardLayout.Groups[g].Resources[r].Trigger();
-                    }
+                    Layout = _boardLayout
                 };
                 _bot.Run(ConfigurationManager.AppSettings["token"]);
 
@@ -296,23 +289,6 @@ namespace DiscordAudioStreamer
             var output = context.Response.OutputStream;
             output.Write(buf, 0, buf.Length);
             context.Response.Close();
-        }
-    
-        private string getListing()
-        {
-            var sb = new StringBuilder();
-            for (int j = 0; j < _boardLayout.Groups.Count; j++)
-            {
-                var group = _boardLayout.Groups[j];
-
-                sb.AppendLine($"{j} - {group.Heading}:");
-                for (int i = 0; i < group.Resources.Count; i++)
-                {
-                    sb.AppendLine($" - - {i} - {group.Resources[i].Text}");
-                }
-            }
-
-            return sb.ToString();
         }
     }
 }

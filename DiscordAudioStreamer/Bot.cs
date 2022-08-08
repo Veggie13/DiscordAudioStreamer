@@ -1,6 +1,7 @@
 ﻿using Discord.WebSocket;
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace DiscordAudioStreamer
@@ -20,9 +21,7 @@ namespace DiscordAudioStreamer
             };
         }
 
-        public Func<string> ListingProvider { get; set; } = () => "";
-
-        public event Action<int, int> Triggered = (_, _) => { };
+        public BoardLayout Layout { get; set; }
         protected override async Task handleCommandAsync(SocketUser user, ISocketMessageChannel channel, string command, string[] args)
         {
             if (_commands.ContainsKey(command))
@@ -46,7 +45,7 @@ namespace DiscordAudioStreamer
 
         async Task listAsync(SocketUser user, ISocketMessageChannel channel, string[] args)
         {
-            string listing = ListingProvider();
+            string listing = getListing();
             await sayToRoomAsync(listing);
         }
 
@@ -56,10 +55,30 @@ namespace DiscordAudioStreamer
             {
                 int groupIndex = int.Parse(args[0]);
                 int resIndex = int.Parse(args[1]);
-                Triggered(groupIndex, resIndex);
+                if (groupIndex < Layout.Groups.Count && resIndex < Layout.Groups[groupIndex].Resources.Count)
+                {
+                    Layout.Groups[groupIndex].Resources[resIndex].Trigger();
+                }
             }
 
             return Task.CompletedTask;
+        }
+
+        private string getListing()
+        {
+            var sb = new StringBuilder();
+            for (int j = 0; j < Layout.Groups.Count; j++)
+            {
+                var group = Layout.Groups[j];
+
+                sb.AppendLine($"{j} - {group.Heading}:");
+                for (int i = 0; i < group.Resources.Count; i++)
+                {
+                    sb.AppendLine($" - - {i} - {group.Resources[i].Text}");
+                }
+            }
+
+            return sb.ToString();
         }
     }
 }

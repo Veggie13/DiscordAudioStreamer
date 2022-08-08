@@ -20,6 +20,9 @@ namespace DiscordAudioStreamer
         Task _runTask;
 
         public IWaveProvider Input { get; set; }
+        public Func<string> ListingProvider { get; set; } = () => "";
+
+        public event Action<int, int> Triggered = (o, e) => { };
 
         public void Run()
         {
@@ -143,7 +146,19 @@ namespace DiscordAudioStreamer
                     }
                 case "list":
                     {
-                        await msg.Channel.SendMessageAsync("TEST");
+                        string listing = ListingProvider();
+                        await msg.Channel.SendMessageAsync(listing);
+                        break;
+                    }
+                case "play":
+                    {
+                        var args = match.Groups[3].Value.Split(' ');
+                        if (args.Length >= 2)
+                        {
+                            int groupIndex = int.Parse(args[0]);
+                            int resIndex = int.Parse(args[1]);
+                            Triggered(groupIndex, resIndex);
+                        }
                         break;
                     }
                 default:

@@ -225,7 +225,7 @@ namespace DiscordAudioStreamer
                         _boardLayout.Groups[g].Resources[r].Trigger();
                     }
                 };
-                _bot.Run();
+                _bot.Run(ConfigurationManager.AppSettings["token"]);
 
                 _httpServer = runServer();
             }

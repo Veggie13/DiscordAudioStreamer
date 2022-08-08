@@ -5,9 +5,9 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace DiscordAudioStreamer
+namespace DiscordBot
 {
-    class DiscordWaveOut : IWavePlayer
+    public class WaveOut : IWavePlayer
     {
         AudioOutStream _voiceStream;
 
@@ -15,7 +15,7 @@ namespace DiscordAudioStreamer
         Task _outputTask;
         bool _running = false;
 
-        public DiscordWaveOut(IAudioClient client)
+        public WaveOut(IAudioClient client)
         {
             _voiceStream = client.CreatePCMStream(AudioApplication.Music);
         }

@@ -1,178 +1,64 @@
-﻿using Discord;
-using Discord.Audio;
-using Discord.WebSocket;
-using NAudio.Wave;
+﻿using Discord.WebSocket;
 using System;
-using System.Configuration;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace DiscordAudioStreamer
 {
-    class Bot
+    class Bot : DiscordBot.Bot
     {
-        bool _running = false;
-        bool _capturing = false;
-        bool _streaming = false;
-        int _userCount = 0;
-        SocketVoiceChannel _currentChannel = null;
-        Task _runTask;
+        Dictionary<string, Func<SocketUser, ISocketMessageChannel, string[], Task>> _commands;
 
-        public IWaveProvider Input { get; set; }
+        public Bot()
+        {
+            _commands = new Dictionary<string, Func<SocketUser, ISocketMessageChannel, string[], Task>>()
+            {
+                { "endaudio", endAudioAsync },
+                { "joinme", joinMeAsync },
+                { "list", listAsync },
+                { "play", playAsync }
+            };
+        }
+
         public Func<string> ListingProvider { get; set; } = () => "";
 
-        public event Action<int, int> Triggered = (o, e) => { };
-
-        public void Run()
+        public event Action<int, int> Triggered = (_, _) => { };
+        protected override async Task handleCommandAsync(SocketUser user, ISocketMessageChannel channel, string command, string[] args)
         {
-            _runTask = runAsync();
-        }
-
-        public void Stop()
-        {
-            EndStream();
-            _running = false;
-            _runTask = null;
-        }
-
-        private async Task runAsync()
-        {
-            _running = true;
-
-            var client = new DiscordSocketClient();
-            client.MessageReceived += Client_MessageReceived;
-            client.Log += Client_Log;
-
-            string token = ConfigurationManager.AppSettings.Get("token");
-
-            await client.LoginAsync(TokenType.Bot, token);
-            await client.StartAsync();
-
-            while (_running)
+            if (_commands.ContainsKey(command))
             {
-                await Task.Delay(5000);
+                await _commands[command](user, channel, args);
             }
         }
 
-        private async Task JoinChannel(SocketVoiceChannel voiceChannel)
+        async Task endAudioAsync(SocketUser user, ISocketMessageChannel channel, string[] args)
         {
-            _userCount = 1;
-            _currentChannel = voiceChannel;
-            await ConnectToVoice();
+            await sayToRoomAsync("Bye!");
+            Stop();
         }
 
-        private void EndStream()
+        async Task joinMeAsync(SocketUser user, ISocketMessageChannel channel, string[] args)
         {
-            _capturing = false;
-            while (_streaming) ;
-            _currentChannel = null;
+            var voiceChannel = findUserVoiceChannel(user);
+            await joinChannelAsync(channel, voiceChannel);
+            await sayToRoomAsync("Hi!");
         }
 
-        private async Task ConnectToVoice()
+        async Task listAsync(SocketUser user, ISocketMessageChannel channel, string[] args)
         {
-            if (_currentChannel == null)
+            string listing = ListingProvider();
+            await sayToRoomAsync(listing);
+        }
+
+        Task playAsync(SocketUser user, ISocketMessageChannel channel, string[] args)
+        {
+            if (args.Length >= 2)
             {
-                return;
+                int groupIndex = int.Parse(args[0]);
+                int resIndex = int.Parse(args[1]);
+                Triggered(groupIndex, resIndex);
             }
 
-            _capturing = true;
-            _streaming = true;
-
-            try
-            {
-                using (var connection = await getConnection())
-                using (var waveOut = new DiscordWaveOut(connection))
-                {
-                    waveOut.Init(Input);
-                    waveOut.Play();
-
-                    while (_capturing) ;
-                }
-            }
-            finally
-            {
-                Console.WriteLine($"Disconnecting from channel {_currentChannel.Id}");
-                await _currentChannel.DisconnectAsync();
-                Console.WriteLine($"Disconnected from channel {_currentChannel.Id}");
-                _streaming = false;
-                _capturing = false;
-            }
-        }
-
-        private async Task<IAudioClient> getConnection()
-        {
-            Console.WriteLine($"Connecting to channel {_currentChannel.Id}");
-            IAudioClient connection = null;
-            while (connection == null)
-            {
-                try
-                {
-                    connection = await _currentChannel.ConnectAsync();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"{ex.GetType().FullName} : {ex.Message}");
-                }
-            }
-            Console.WriteLine($"Connected to channel {_currentChannel.Id}");
-            return connection;
-        }
-
-        private Task Client_MessageReceived(SocketMessage msg)
-        {
-            _ = Task.Run(async () =>
-            {
-                var regex = new Regex("^!(.+?)( (.*))?$");
-                var match = regex.Match(msg.Content);
-                if (!match.Success)
-                {
-                    return;
-                }
-
-                switch (match.Groups[1].Value)
-                {
-                    case "endaudio":
-                        {
-                            EndStream();
-                            _running = false;
-                            break;
-                        }
-                    case "joinme":
-                        {
-                            var channel = msg.Author.MutualGuilds
-                                .SelectMany(g => g.VoiceChannels)
-                                .FirstOrDefault(vc => vc.Users.Contains(msg.Author));
-                            await JoinChannel(channel);
-                            break;
-                        }
-                    case "list":
-                        {
-                            string listing = ListingProvider();
-                            await msg.Channel.SendMessageAsync(listing);
-                            break;
-                        }
-                    case "play":
-                        {
-                            var args = match.Groups[3].Value.Split(' ');
-                            if (args.Length >= 2)
-                            {
-                                int groupIndex = int.Parse(args[0]);
-                                int resIndex = int.Parse(args[1]);
-                                Triggered(groupIndex, resIndex);
-                            }
-                            break;
-                        }
-                    default:
-                        break;
-                }
-            });
-            return Task.CompletedTask;
-        }
-
-        private Task Client_Log(LogMessage msg)
-        {
-            Console.WriteLine(msg.ToString());
             return Task.CompletedTask;
         }
     }

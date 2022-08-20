@@ -13,9 +13,9 @@ namespace DiscordAudioStreamer
     class HttpServer
     {
         HttpListener _listener;
-        BoardLayoutController _boardLayoutController;
+        IBoardLayout _boardLayoutController;
 
-        public HttpServer(BoardLayoutController boardLayoutController)
+        public HttpServer(IBoardLayout boardLayoutController)
         {
             _boardLayoutController = boardLayoutController;
         }

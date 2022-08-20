@@ -6,11 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NAudio" Version="2.0.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\DiscordAudioStreamer.Api\DiscordAudioStreamer.Api.csproj" />
     <ProjectReference Include="..\DiscordAudioStreamer.Model\DiscordAudioStreamer.Model.csproj" />
   </ItemGroup>
 

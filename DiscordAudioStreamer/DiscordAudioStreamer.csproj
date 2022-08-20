@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DiscordAudioStreamer.Api\DiscordAudioStreamer.Api.csproj" />
     <ProjectReference Include="..\DiscordAudioStreamer.Engine\DiscordAudioStreamer.Engine.csproj" />
     <ProjectReference Include="..\DiscordAudioStreamer.Model\DiscordAudioStreamer.Model.csproj" />
     <ProjectReference Include="..\DiscordBot\DiscordBot.csproj" />

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace DiscordAudioStreamer
 {
-    public class BoardGroupController
+    public class BoardGroupController : IBoardGroup
     {
         MixingSampleProvider _mixer;
         VolumeSampleProvider _volume;
@@ -47,6 +47,7 @@ namespace DiscordAudioStreamer
         {
             return _resourceControllers[id];
         }
+        IBoardResource IBoardGroup.GetResourceController(Guid id) => GetResourceController(id);
 
         public void StopEarly()
         {

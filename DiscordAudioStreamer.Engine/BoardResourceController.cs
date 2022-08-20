@@ -2,7 +2,7 @@
 
 namespace DiscordAudioStreamer
 {
-    public class BoardResourceController
+    public class BoardResourceController : IBoardResource
     {
         public BoardResourceController(BoardResource resource)
         {

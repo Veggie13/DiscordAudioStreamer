@@ -7,9 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiscordAudioStreamer", "Dis
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiscordBot", "DiscordBot\DiscordBot.csproj", "{CCC451E1-0F0D-45B0-B0A3-351C6C0C3A2C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordAudioStreamer.Model", "DiscordAudioStreamer.Model\DiscordAudioStreamer.Model.csproj", "{7CB03830-3BC7-4326-87CC-182C7909FECE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiscordAudioStreamer.Model", "DiscordAudioStreamer.Model\DiscordAudioStreamer.Model.csproj", "{7CB03830-3BC7-4326-87CC-182C7909FECE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiscordAudioStreamer.Engine", "DiscordAudioStreamer.Engine\DiscordAudioStreamer.Engine.csproj", "{9E16C03F-D29C-4A94-ADA8-563D1D090D18}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiscordAudioStreamer.Engine", "DiscordAudioStreamer.Engine\DiscordAudioStreamer.Engine.csproj", "{9E16C03F-D29C-4A94-ADA8-563D1D090D18}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiscordAudioStreamer.Api", "DiscordAudioStreamer.Api\DiscordAudioStreamer.Api.csproj", "{6D245787-5483-4C62-A054-F05AD3046BFE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{9E16C03F-D29C-4A94-ADA8-563D1D090D18}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9E16C03F-D29C-4A94-ADA8-563D1D090D18}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9E16C03F-D29C-4A94-ADA8-563D1D090D18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D245787-5483-4C62-A054-F05AD3046BFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D245787-5483-4C62-A054-F05AD3046BFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D245787-5483-4C62-A054-F05AD3046BFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D245787-5483-4C62-A054-F05AD3046BFE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

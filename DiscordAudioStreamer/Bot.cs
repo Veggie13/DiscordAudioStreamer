@@ -21,7 +21,8 @@ namespace DiscordAudioStreamer
             };
         }
 
-        public BoardLayoutController LayoutController { get; set; }
+        public IBoardLayout LayoutController { get; set; }
+
         protected override async Task handleCommandAsync(SocketUser user, ISocketMessageChannel channel, string command, string[] args)
         {
             if (_commands.ContainsKey(command))

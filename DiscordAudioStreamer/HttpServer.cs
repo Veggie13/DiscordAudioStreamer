@@ -65,7 +65,7 @@ namespace DiscordAudioStreamer
                 if (body.StartsWith("RES "))
                 {
                     Guid id = new Guid(body.Substring(4));
-                    _boardLayoutController.GetResource(id).Trigger();
+                    _boardLayoutController.GetResourceController(id).Trigger();
                 }
                 else if (body.StartsWith("VOL "))
                 {

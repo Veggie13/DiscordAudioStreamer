@@ -27,6 +27,8 @@ namespace DiscordAudioStreamer
 
         public void SetBoardLayout(BoardLayout boardLayout)
         {
+            _boardLayoutController = new BoardLayoutController(boardLayout);
+
             _layoutPanel.Controls.Clear();
 
             _layoutPanel.ColumnCount = 1 + Math.Max(1, boardLayout.Groups.Count);
@@ -35,6 +37,8 @@ namespace DiscordAudioStreamer
             int col = 0;
             foreach (var group in boardLayout.Groups)
             {
+                var groupController = _boardLayoutController.GetGroupController(group.ID);
+
                 var header = new Label()
                 {
                     Text = group.Heading,
@@ -47,10 +51,8 @@ namespace DiscordAudioStreamer
                     Text = "STOP",
                     AutoSize = true
                 };
-                stopButton.Click += (_, _) => { group.StopEarly(); };
+                stopButton.Click += (_, _) => { groupController.StopEarly(); };
                 _layoutPanel.Controls.Add(stopButton, col, 1);
-
-                var groupController = _boardLayoutController.GetGroupController(group.ID);
 
                 var slider = new TrackBar()
                 {
@@ -68,6 +70,8 @@ namespace DiscordAudioStreamer
                 int row = 3;
                 foreach (var resource in group.Resources)
                 {
+                    var resourceController = groupController.GetResourceController(resource.ID);
+
                     var button = new Button()
                     {
                         Text = resource.Text,
@@ -75,8 +79,7 @@ namespace DiscordAudioStreamer
                         AutoSizeMode = AutoSizeMode.GrowOnly,
                         Font = new System.Drawing.Font("Arial", 30)
                     };
-                    var res = resource;
-                    button.Click += (_, _) => res.Trigger();
+                    button.Click += (_, _) => resourceController.Trigger();
 
                     _layoutPanel.Controls.Add(button, col, row);
 
@@ -94,8 +97,8 @@ namespace DiscordAudioStreamer
             {
                 string layoutFile = ConfigurationManager.AppSettings["layoutFile"];
                 string content = File.ReadAllText(layoutFile);
-                _boardLayoutController.Deserialize(content);
-                SetBoardLayout(_boardLayoutController.Layout);
+                var layout = BoardLayout.Deserialize(content);
+                SetBoardLayout(layout);
             };
 
             _layoutPanel.Controls.Add(reloadButton, col, 0);
@@ -195,13 +198,13 @@ namespace DiscordAudioStreamer
 
                 string layoutFile = ConfigurationManager.AppSettings["layoutFile"];
                 string content = File.ReadAllText(layoutFile);
-                _boardLayoutController = new BoardLayoutController(content);
-                SetBoardLayout(_boardLayoutController.Layout);
+                var layout = BoardLayout.Deserialize(content);
+                SetBoardLayout(layout);
 
                 _bot = new Bot()
                 {
                     Input = _boardLayoutController.WaveProvider,
-                    Layout = _boardLayoutController.Layout
+                    LayoutController = _boardLayoutController
                 };
                 _bot.Run(ConfigurationManager.AppSettings["token"]);
 

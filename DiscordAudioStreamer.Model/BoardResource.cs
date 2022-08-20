@@ -16,12 +16,5 @@ namespace DiscordAudioStreamer
         public string Text { get; }
         public string Filename { get; }
         public Guid ID { get; }
-
-        public event Action<BoardResource> Triggered = _ => { };
-
-        public void Trigger()
-        {
-            Triggered(this);
-        }
     }
 }

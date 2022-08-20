@@ -14,11 +14,6 @@ namespace DiscordAudioStreamer
             Looped = looped;
             ID = id;
             Resources.AddRange(resources);
-
-            foreach (var resource in Resources)
-            {
-                resource.Triggered += resource_Triggered;
-            }
         }
 
         public string Heading { get; }
@@ -26,23 +21,5 @@ namespace DiscordAudioStreamer
         public bool Looped { get; } = false;
         public Guid ID { get; }
         public List<BoardResource> Resources { get; } = new List<BoardResource>();
-
-        public event Action Stop = () => { };
-        public event Action<bool, BoardResource> Start = (_, _) => { };
-
-        public void StopEarly()
-        {
-            Stop();
-        }
-
-        private void resource_Triggered(BoardResource resource)
-        {
-            if (!CanPlaySimultaneously)
-            {
-                Stop();
-            }
-
-            Start(Looped, resource);
-        }
     }
 }

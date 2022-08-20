@@ -1,5 +1,7 @@
 ﻿using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
+using System;
+using System.Collections.Generic;
 
 namespace DiscordAudioStreamer
 {
@@ -8,12 +10,11 @@ namespace DiscordAudioStreamer
         MixingSampleProvider _mixer;
         VolumeSampleProvider _volume;
 
+        Dictionary<Guid, BoardResourceController> _resourceControllers = new Dictionary<Guid, BoardResourceController>();
+
         public BoardGroupController(BoardGroup group)
         {
             Group = group;
-
-            Group.Start += group_Start;
-            Group.Stop += group_Stop;
 
             _mixer = new MixingSampleProvider(WaveFormat.CreateIeeeFloatWaveFormat(22050, 2))
             {
@@ -23,6 +24,13 @@ namespace DiscordAudioStreamer
             {
                 Volume = 1.0f
             };
+
+            foreach (var resource in Group.Resources)
+            {
+                var resourceController = new BoardResourceController(resource);
+                resourceController.Triggered += resource_Triggered;
+                _resourceControllers[resource.ID] = resourceController;
+            }
         }
 
         public BoardGroup Group { get; }
@@ -35,12 +43,32 @@ namespace DiscordAudioStreamer
             }
         }
 
-        private void group_Stop()
+        public BoardResourceController GetResourceController(Guid id)
+        {
+            return _resourceControllers[id];
+        }
+
+        public void StopEarly()
+        {
+            stop();
+        }
+
+        private void resource_Triggered(BoardResource resource)
+        {
+            if (!Group.CanPlaySimultaneously)
+            {
+                stop();
+            }
+
+            start(Group.Looped, resource);
+        }
+
+        private void stop()
         {
             _mixer.RemoveAllMixerInputs();
         }
 
-        private void group_Start(bool looping, BoardResource resource)
+        private void start(bool looping, BoardResource resource)
         {
             var reader = new AudioFileReader(resource.Filename);
             var stream = new LoopStream(reader)

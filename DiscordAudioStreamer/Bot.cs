@@ -21,7 +21,7 @@ namespace DiscordAudioStreamer
             };
         }
 
-        public BoardLayout Layout { get; set; }
+        public BoardLayoutController LayoutController { get; set; }
         protected override async Task handleCommandAsync(SocketUser user, ISocketMessageChannel channel, string command, string[] args)
         {
             if (_commands.ContainsKey(command))
@@ -55,9 +55,11 @@ namespace DiscordAudioStreamer
             {
                 int groupIndex = int.Parse(args[0]);
                 int resIndex = int.Parse(args[1]);
-                if (groupIndex < Layout.Groups.Count && resIndex < Layout.Groups[groupIndex].Resources.Count)
+                var layout = LayoutController.Layout;
+                if (groupIndex < layout.Groups.Count && resIndex < layout.Groups[groupIndex].Resources.Count)
                 {
-                    Layout.Groups[groupIndex].Resources[resIndex].Trigger();
+                    var resourceController = LayoutController.GetResourceController(layout.Groups[groupIndex].Resources[resIndex].ID);
+                    resourceController.Trigger();
                 }
             }
 
@@ -66,10 +68,11 @@ namespace DiscordAudioStreamer
 
         private string getListing()
         {
+            var layout = LayoutController.Layout;
             var sb = new StringBuilder();
-            for (int j = 0; j < Layout.Groups.Count; j++)
+            for (int j = 0; j < layout.Groups.Count; j++)
             {
-                var group = Layout.Groups[j];
+                var group = layout.Groups[j];
 
                 sb.AppendLine($"{j} - {group.Heading}:");
                 for (int i = 0; i < group.Resources.Count; i++)

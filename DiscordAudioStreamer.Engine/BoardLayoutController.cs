@@ -13,35 +13,17 @@ namespace DiscordAudioStreamer
     {
         MixingSampleProvider _mixer;
         Dictionary<Guid, BoardGroupController> _groupControllers = new Dictionary<Guid, BoardGroupController>();
-        Dictionary<Guid, BoardResource> _resources = new Dictionary<Guid, BoardResource>();
+        Dictionary<Guid, BoardResourceController> _resourceControllers = new Dictionary<Guid, BoardResourceController>();
 
-        public BoardLayoutController(string content)
+        public BoardLayoutController(BoardLayout layout)
         {
+            Layout = layout;
+
             _mixer = new MixingSampleProvider(WaveFormat.CreateIeeeFloatWaveFormat(22050, 2))
             {
                 ReadFully = true
             };
             WaveProvider = _mixer.ToWaveProvider();
-
-            Deserialize(content);
-        }
-
-        public BoardLayout Layout { get; private set; }
-        public IWaveProvider WaveProvider { get; }
-
-        public BoardGroupController GetGroupController(Guid id)
-        {
-            return _groupControllers[id];
-        }
-
-        public BoardResource GetResource(Guid id)
-        {
-            return _resources[id];
-        }
-
-        public void Deserialize(string content)
-        {
-            Layout = JsonSerializer.Deserialize<BoardLayout>(content);
 
             foreach (var group in Layout.Groups)
             {
@@ -51,9 +33,22 @@ namespace DiscordAudioStreamer
 
                 foreach (var resource in group.Resources)
                 {
-                    _resources[resource.ID] = resource;
+                    _resourceControllers[resource.ID] = groupController.GetResourceController(resource.ID);
                 }
             }
+        }
+
+        public BoardLayout Layout { get; }
+        public IWaveProvider WaveProvider { get; }
+
+        public BoardGroupController GetGroupController(Guid id)
+        {
+            return _groupControllers[id];
+        }
+
+        public BoardResourceController GetResourceController(Guid id)
+        {
+            return _resourceControllers[id];
         }
     }
 }

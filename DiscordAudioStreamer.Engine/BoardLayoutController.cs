@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace DiscordAudioStreamer
 {
-    class BoardLayoutController
+    public class BoardLayoutController
     {
         MixingSampleProvider _mixer;
         Dictionary<Guid, BoardGroupController> _groupControllers = new Dictionary<Guid, BoardGroupController>();

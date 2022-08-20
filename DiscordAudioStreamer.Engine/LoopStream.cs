@@ -5,7 +5,7 @@ namespace DiscordAudioStreamer
     /// <summary>
     /// Stream for looping playback
     /// </summary>
-    public class LoopStream : WaveStream
+    class LoopStream : WaveStream
     {
         WaveStream sourceStream;
 

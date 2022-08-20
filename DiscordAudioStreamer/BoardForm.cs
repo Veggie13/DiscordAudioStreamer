@@ -1,33 +1,23 @@
-﻿using NAudio.Wave;
-using NAudio.Wave.SampleProviders;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Configuration;
-using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace DiscordAudioStreamer
 {
     public partial class BoardForm : Form
     {
-        BoardLayoutController _boardLayoutController;
-        Bot _bot;
-        HttpServer _httpServer;
+        IControllerProvider _controllerProvider;
 
         public BoardForm()
         {
             InitializeComponent();
         }
 
-        public void SetBoardLayout(BoardLayout boardLayout)
+        public void RenderLayout()
         {
-            _boardLayoutController = new BoardLayoutController(boardLayout);
+            var boardLayoutController = _controllerProvider.GetLayoutController();
+            var boardLayout = boardLayoutController.Layout;
 
             _layoutPanel.Controls.Clear();
 
@@ -37,7 +27,7 @@ namespace DiscordAudioStreamer
             int col = 0;
             foreach (var group in boardLayout.Groups)
             {
-                var groupController = _boardLayoutController.GetGroupController(group.ID);
+                var groupController = boardLayoutController.GetGroupController(group.ID);
 
                 var header = new Label()
                 {
@@ -95,93 +85,11 @@ namespace DiscordAudioStreamer
             };
             reloadButton.Click += (_, _) =>
             {
-                string layoutFile = ConfigurationManager.AppSettings["layoutFile"];
-                string content = File.ReadAllText(layoutFile);
-                var layout = BoardLayout.Deserialize(content);
-                SetBoardLayout(layout);
+                _controllerProvider.Reload();
+                RenderLayout();
             };
 
             _layoutPanel.Controls.Add(reloadButton, col, 0);
-        }
-
-        public void SetBoardLayoutRemote(string remote)
-        {
-            var client = new HttpClient()
-            {
-                BaseAddress = new Uri(remote)
-            };
-
-            var request = new HttpRequestMessage(HttpMethod.Get, remote);
-            var response = client.Send(request);
-            string responseContent = response.Content.ReadAsStringAsync().Result;
-
-            var boardLayout = JsonSerializer.Deserialize<BoardLayout>(responseContent);
-            _layoutPanel.Controls.Clear();
-
-            _layoutPanel.ColumnCount = Math.Max(1, boardLayout.Groups.Count);
-            _layoutPanel.RowCount = 1 + (boardLayout.Groups.Any() ? boardLayout.Groups.Max(g => g.Resources.Count) : 1);
-
-            int col = 0;
-            foreach (var group in boardLayout.Groups)
-            {
-                var header = new Label()
-                {
-                    Text = group.Heading,
-                    AutoSize = true
-                };
-                _layoutPanel.Controls.Add(header, col, 0);
-
-                var slider = new TrackBar()
-                {
-                    Minimum = 0,
-                    Maximum = 100,
-                    Value = 100,
-                    SmallChange = 1,
-                    LargeChange = 10,
-                    AutoSize = true
-                };
-                slider.ValueChanged += (_, _) =>
-                {
-                    var client = new HttpClient()
-                    {
-                        BaseAddress = new Uri(remote)
-                    };
-
-                    var request = new HttpRequestMessage(HttpMethod.Post, remote);
-                    request.Content = new StringContent($"VOL {group.ID} {slider.Value}");
-                    client.Send(request);
-                };
-
-                _layoutPanel.Controls.Add(slider, col, 1);
-
-                int row = 2;
-                foreach (var resource in group.Resources)
-                {
-                    var button = new Button()
-                    {
-                        Text = resource.Text,
-                        AutoSize = true,
-                        AutoSizeMode = AutoSizeMode.GrowOnly
-                    };
-                    var res = resource;
-                    button.Click += (_, _) =>
-                    {
-                        var client = new HttpClient()
-                        {
-                            BaseAddress = new Uri(remote)
-                        };
-
-                        var request = new HttpRequestMessage(HttpMethod.Post, remote);
-                        request.Content = new StringContent($"RES {res.ID}");
-                        client.Send(request);
-                    };
-
-                    _layoutPanel.Controls.Add(button, col, row);
-
-                    row++;
-                }
-                col++;
-            }
         }
 
         private void BoardForm_Load(object sender, EventArgs e)
@@ -189,34 +97,22 @@ namespace DiscordAudioStreamer
             if (ConfigurationManager.AppSettings.AllKeys.Contains("remote"))
             {
                 string remote = ConfigurationManager.AppSettings["remote"];
-                Text += " - " + remote;
-                SetBoardLayoutRemote(remote);
+                _controllerProvider = new RemoteControllerProvider(remote);
             }
             else
             {
-                Text += " - server";
-
                 string layoutFile = ConfigurationManager.AppSettings["layoutFile"];
-                string content = File.ReadAllText(layoutFile);
-                var layout = BoardLayout.Deserialize(content);
-                SetBoardLayout(layout);
-
-                _bot = new Bot()
-                {
-                    Input = _boardLayoutController.WaveProvider,
-                    LayoutController = _boardLayoutController
-                };
-                _bot.Run(ConfigurationManager.AppSettings["token"]);
-
-                _httpServer = new HttpServer(_boardLayoutController);
-                _httpServer.Run();
+                string botToken = ConfigurationManager.AppSettings["token"];
+                _controllerProvider = new LocalControllerProvider(layoutFile, botToken);
             }
+
+            Text += $" - {_controllerProvider.Name}";
+            RenderLayout();
         }
 
         private void BoardForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            _bot?.Stop();
-            _httpServer?.Stop();
+            _controllerProvider.Shutdown();
         }
     }
 }

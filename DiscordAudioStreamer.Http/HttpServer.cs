@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -10,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace DiscordAudioStreamer
 {
-    class HttpServer
+    public class HttpServer
     {
         HttpListener _listener;
         IBoardLayout _boardLayoutController;
@@ -19,6 +17,8 @@ namespace DiscordAudioStreamer
         {
             _boardLayoutController = boardLayoutController;
         }
+
+        public event Action ReloadRequested = () => { };
 
         public void Run()
         {
@@ -72,6 +72,15 @@ namespace DiscordAudioStreamer
                     Guid id = new Guid(body.Substring(4, Guid.Empty.ToString().Length));
                     int volume = int.Parse(body.Substring(5 + Guid.Empty.ToString().Length));
                     _boardLayoutController.GetGroupController(id).Volume = volume;
+                }
+                else if (body.StartsWith("STOP "))
+                {
+                    Guid id = new Guid(body.Substring(5, Guid.Empty.ToString().Length));
+                    _boardLayoutController.GetGroupController(id).StopEarly();
+                }
+                else if (body.Equals("RELOAD"))
+                {
+                    ReloadRequested();
                 }
 
                 buf = Encoding.UTF8.GetBytes("ACK");
